@@ -5,7 +5,7 @@
 ## 🚀 功能概览
 在线编辑与实时保存
 可设置分享口令（Token）
-通过链接 https://<worker>/share?token=<token> 公开分享
+通过链接公开分享
 无需数据库，所有数据保存在 Cloudflare KV
 
 ## 🚀 一键workers部署 （建议有域名的部署）
