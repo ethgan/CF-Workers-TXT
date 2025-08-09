@@ -9,18 +9,18 @@
 无需数据库，所有数据保存在 Cloudflare KV
 
 ## 🚀 一键workers部署 （建议有域名的部署）
-1.在Cloudflare里新建一个workers项目
-2.粘贴项目中worker.js代码，保存并部署
-3.新建一个KV值，保存
-4.在workers项目设置里，绑定新建的KV数值
-5.访问 https://<worker域名>  可以在后台设置访问密码，防止被盗用
+ 1.在Cloudflare里新建一个workers项目
+ 2.粘贴项目中worker.js代码，保存并部署
+ 3.新建一个KV值，保存
+ 4.在workers项目设置里，绑定新建的KV数值
+ 5.访问 https://<worker域名>  可以在后台设置访问密码，防止被盗用
 
 ## 🚀 一键wpages部署 （适合没有自定义域名的部署）
-1.在Cloudflare里新建一个pages项目
-2.上传pages.zip压缩包，保存并部署
-3.新建一个KV值，保存
-4.在pages项目设置里，绑定新建的KV数值
-5.重新上传pages.zip压缩包，保存并部署 （很重要！这一步是为了让KV数值生效）
-5.访问 https://<pages域名>  可以在后台设置访问密码，防止被盗用
+ 1.在Cloudflare里新建一个pages项目
+ 2.上传pages.zip压缩包，保存并部署
+ 3.新建一个KV值，保存
+ 4.在pages项目设置里，绑定新建的KV数值
+ 5.重新上传pages.zip压缩包，保存并部署 （很重要！这一步是为了让KV数值生效）
+ 6.访问 https://<pages域名>  可以在后台设置访问密码，防止被盗用
 
 
