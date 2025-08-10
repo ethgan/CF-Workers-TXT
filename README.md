@@ -13,7 +13,7 @@
 2. 粘贴项目中 worker.js 代码，保存并部署  
 3. 新建一个 KV 值，变量添加ADMIN\_UUID
 4. 在 Workers 项目设置里，绑定新建的 KV 数值  
-5. 访问 `https://<worker域名>`，可在后台设置访问密码，防止被盗用
+5. 访问 `https://<worker域名>/ADMIN\_UUID`，可在后台设置访问密码，防止被盗用
 
 ## 🚀 一键pages部署 （适合没有自定义域名的部署）
 1. 在 Cloudflare 里新建一个 Pages 项目  
@@ -21,7 +21,7 @@
 3. 新建一个 KV 值，保存  
 4. 在 Pages 项目设置里，绑定新建的 KV 数值  变量添加ADMIN\_UUID
 5. 重新上传 pages.zip 压缩包，保存并部署（很重要！这一步是为了让 KV 数值生效）  
-6. 访问 https://<pages域名>，可以在后台设置访问密码，防止被盗用
+6. 访问 https://<pages域名>/ADMIN\_UUID，可以在后台设置访问密码，防止被盗用
 
 创作不易，有帮助的点个Star!⭐⭐⭐
 感谢~
