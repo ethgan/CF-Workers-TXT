@@ -1,123 +1,153 @@
-const defaultText = `#EXTM3U
-#EXTINF:-1,示例
-https://example.com/
-`;
+// ============= 在线文本管理器（自定义访客 Token + 图标） =============
+// 管理员： https://<worker域名>/<ADMIN_UUID>
+// 访   客： https://<worker域名>/sub?token=<自定义Token>
 
+// ===== 默认配置 =====
+let ADMIN_UUID = null;        // 必填
+let FileName   = 'CF-Workers-TXT';
+
+const TXT_FILE = 'TEXT.txt';
+
+// ===== 工具 =====
+function uuidv4() {
+  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+    (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+  );
+}
+
+// ===== 主入口 =====
 export default {
   async fetch(request, env) {
+    ADMIN_UUID = env.ADMIN_UUID || ADMIN_UUID;
+    FileName   = env.FILENAME   || FileName;
+
     const url = new URL(request.url);
-    const path = url.pathname;
-    const kv = env.KV;
+    const pathname = url.pathname.slice(1);
+    const token = url.searchParams.get('token');
 
-    // Shared footer HTML with YouTube and GitHub links
-    const footer = `
-      <hr>
-      <div style="margin-top: 20px;">
-        <p>
-          <a href="https://www.youtube.com/@好软推荐" target="_blank" style="text-decoration: none; margin-right: 20px;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 5px;">
-              <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"/>
-              <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"/>
-            </svg>
-            好软推荐
-          </a>
-          <a href="https://github.com/ethgan/Online-Text-Edit" target="_blank" style="text-decoration: none;">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 5px;">
-              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
-            </svg>
-            Github项目地址
-          </a>
-        </p>
-      </div>
-    `;
-
-    // 后台设置 token 的页面
-    if (path === "/admin") {
-      const currentToken = await kv.get("token") || "share";
-      const html = `
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <title>文本管理后台</title>
-</head>
-<body>
-  <h1>🛠️ 后台设置</h1>
-  <form method="post" action="/admin">
-    <label>Token（用于分享链接，支持特殊字符）:</label><br>
-    <input type="text" name="token" value="${currentToken.replace(/"/g, '&quot;')}" required><br><br>
-    <button type="submit">保存 Token</button>
-  </form>
-  <hr>
-  <a href="/">← 返回编辑页</a>
-  ${footer}
-</body>
-</html>`;
-      if (request.method === "POST") {
-        const form = new URLSearchParams(await request.text());
-        const newToken = form.get("token")?.trim();
-        if (!newToken || newToken.length > 100) {
-          return new Response("Token 不能为空或超过100个字符", { status: 400 });
-        }
-        await kv.put("token", newToken);
-        return new Response("Token 已更新", { status: 200 });
-      }
-      return new Response(html, { headers: { "Content-Type": "text/html" } });
+    // 未设置 ADMIN_UUID
+    if (!ADMIN_UUID) {
+      return new Response(
+        `<!doctype html><meta charset="utf-8"><h1>⚠️ 请先设置环境变量 ADMIN_UUID</h1>`,
+        { status: 400, headers: { 'Content-Type': 'text/html;charset=utf-8' } }
+      );
     }
 
-    // 分享链接
-    const token = await kv.get("token") || "share";
-    if (path === "/share" && url.searchParams.get("token") === token) {
-      const text = await kv.get("text") || defaultText;
-      return new Response(text, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
-    }
-
-    // 主页面：编辑文本
-    if (path === "/") {
-      const saved = await kv.get("text") || defaultText;
-      const html = `
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <title>在线文本管理器</title>
-  <style>
-    body { font-family: sans-serif; padding: 20px; background: #f9f9f9; }
-    textarea { width: 100%; height: 60vh; font-size: 16px; font-family: monospace; }
-    .actions button { margin-right: 10px; padding: 8px 16px; }
-  </style>
-</head>
-<body>
-  <h1>📝 在线文本管理器</h1>
-  <textarea id="editor">${saved}</textarea>
-  <div class="actions">
-    <button onclick="saveText()">保存</button>
-    <button onclick="copyShare()">复制分享链接</button>
-    <button onclick="location.href='/admin'">后台设置</button>
-  </div>
-  ${footer}
-  <script>
-    async function saveText() {
-      await fetch("/", { method: "POST", body: document.getElementById("editor").value });
-      alert("已保存");
-    }
-    async function copyShare() {
-      const token = "${encodeURIComponent(token)}";
-      const link = location.origin + "/share?token=" + token;
-      navigator.clipboard.writeText(link);
-      alert("分享链接已复制");
-    }
-  </script>
-</body>
-</html>`;
-      if (request.method === "POST") {
+    // 管理员页面
+    if (pathname === ADMIN_UUID) {
+      if (request.method === 'POST') {
         const body = await request.text();
-        await kv.put("text", body);
-        return new Response("Saved", { status: 200 });
+        if (body.startsWith('GUESTGEN|')) {
+          // 生成/保存访客 Token
+          const custom = body.split('|')[1] || uuidv4();
+          await env.KV.put('GUEST_TOKEN', custom);
+          return new Response(custom);
+        }
+        // 保存文本
+        await env.KV.put(TXT_FILE, body);
+        return new Response('saved');
       }
-      return new Response(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
+      const content = await env.KV.get(TXT_FILE) || '';
+      return new Response(adminPage(content), {
+        headers: { 'Content-Type': 'text/html;charset=utf-8' }
+      });
     }
 
-    return new Response("404 Not Found", { status: 404 });
+    // 访客查看
+    if (url.pathname === '/sub' && token) {
+      const saved = await env.KV.get('GUEST_TOKEN');
+      if (token !== saved) return new Response('Token invalid', { status: 403 });
+      const data = await env.KV.get(TXT_FILE) || '';
+      return new Response(data, {
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+      });
+    }
+
+    return new Response('Not Found', { status: 404 });
   }
 };
+
+// ===== 管理页 HTML =====
+function adminPage(content) {
+  return `<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>${FileName} 管理器</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+body{margin:0;padding:15px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto;font-size:14px;background:#f7f8fa;color:#333}
+h1{margin-top:0;font-size:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1 span{display:flex;align-items:center;gap:12px;font-size:14px;font-weight:400}
+a{color:inherit;text-decoration:none;display:inline-flex;align-items:center;gap:2px}
+textarea{width:100%;height:60vh;border:1px solid #d0d7de;border-radius:6px;padding:10px;resize:vertical}
+button{margin:8px 4px 0 0;padding:6px 14px;border:none;border-radius:6px;background:#238636;color:#fff;cursor:pointer}
+#share{margin-top:10px;padding:10px;border:1px dashed #d0d7de;border-radius:6px;background:#fff}
+#share input{width:100%;margin-top:4px;padding:4px;border:1px solid #d0d7de;border-radius:4px;font-family:monospace}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@keeex/qrcodejs-kx@1.0.2/qrcode.min.js"></script>
+</head>
+<body>
+<h1>
+  ${FileName} 管理器
+  <span>
+    <a href="https://www.youtube.com/@%E5%A5%BD%E8%BD%AF%E6%8E%A8%E8%8D%90" target="_blank" title="好软推荐">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color:#ff0000">
+        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.546 12 3.546 12 3.546s-7.505 0-9.377.504A3.016 3.016 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.504 9.376.504 9.376.504s7.505 0 9.377-.504a3.016 3.016 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12 9.545 15.568z"/>
+      </svg>
+      好软推荐
+    </a>
+    <a href="https://github.com/ethgan/Online-Text-Edit" target="_blank" title="GitHub">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.085 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+      </svg>
+      GitHub
+    </a>
+  </span>
+</h1>
+
+<textarea id="editor">${content}</textarea>
+<div>
+  <button onclick="save()">保存</button>
+  <span id="status"></span>
+</div>
+
+<div id="share">
+  <strong>访客 Token 设置</strong><br>
+  <input id="customToken" placeholder="留空随机生成">
+  <button onclick="gen()">生成 / 更新</button>
+  <div id="link" style="margin-top:8px;display:none">
+    访客地址：<input id="url" readonly>
+    <div id="qr"></div>
+  </div>
+</div>
+
+<script>
+const path = location.href.split('/').slice(0,-1).join('/');
+function save() {
+  const btn = event.target;
+  btn.disabled = true;
+  fetch(location.href, { method:'POST', body: editor.value })
+    .then(() => status.textContent = '已保存')
+    .catch(() => status.textContent = '保存失败')
+    .finally(() => btn.disabled = false);
+}
+function gen() {
+  const custom = customToken.value.trim();
+  fetch(location.href, { method:'POST', body: 'GUESTGEN|' + custom })
+    .then(r => r.text())
+    .then(t => {
+      const url = path + '/sub?token=' + t;
+      urlInput.value = url;
+      link.style.display = 'block';
+      qr.innerHTML = '';
+      new QRCode(qr, { text:url, width:120, height:120 });
+    });
+}
+const urlInput = document.getElementById('url');
+const link = document.getElementById('link');
+const qr = document.getElementById('qr');
+</script>
+</body>
+</html>`;
+}
