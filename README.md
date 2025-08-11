@@ -2,6 +2,8 @@
 该项目是一个极简的在线文本管理器，基于 Cloudflare Workers + KV 存储，提供「实时编辑 / 保存 / 分享」功能。
 一个无需数据库、即用即走的纯文本在线编辑与分享工具。可存放任意纯文本内容
 
+[![YouTube](https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/60px-YouTube_full-color_icon_%282017%29.svg.png)]([https://www.youtube.com/](https://www.youtube.com/watch?v=j3jFkGo4czQ&sttick=0) "访问YouTube")
+
 ## 🚀 功能概览
 在线编辑与实时保存
 可设置分享口令（Token）
